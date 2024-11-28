@@ -5,18 +5,25 @@ services:
     image: traefik:v2.10
     container_name: traefik
     ports:
-      - "80:80"        
-      - "443:443"      
-      - "8080:8080"    
+      - "80:80"
+      - "443:443"
+      - "8080:8080"
     volumes:
-      - /var/run/docker.sock:/var/run/docker.sock:ro  
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /var/log/traefik:/var/log/traefik  # Montre un répertoire pour les logs
     command:
-      - "--api.insecure=true"  
-      - "--providers.docker=true"  
-      - "--entrypoints.web.address=:80" 
-      - "--entrypoints.websecure.address=:443"  
+      - "--api.insecure=true"
+      - "--providers.docker=true"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      - "--log.level=DEBUG"  # Active les logs détaillés
+      - "--accesslog=true"   # Active le log d'accès HTTP
+      - "--accesslog.filepath=/var/log/traefik/access.log"  # Emplacement du fichier de log
     environment:
       - TRAEFIK_LOG_LEVEL=INFO
+    networks:
+      linux-cours:
+        ipv4_address: 192.168.100.2
 
   serveur1:
     image: nginx:latest
@@ -28,6 +35,9 @@ services:
     volumes:
       - ./serveur1:/usr/share/nginx/html:ro
       - ./serveur1/nginx.conf:/etc/nginx/nginx.conf:ro
+    networks:
+      linux-cours:
+        ipv4_address: 192.168.100.3
 
   nginx-prometheus-exporter:
     image: nginx/nginx-prometheus-exporter:latest
@@ -38,6 +48,9 @@ services:
       - "9113:9113"
     depends_on:
       - serveur1
+    networks:
+      linux-cours:
+        ipv4_address: 192.168.100.4
 
   prometheus:
     image: prom/prometheus:latest
@@ -50,6 +63,9 @@ services:
       - "--config.file=/etc/prometheus/prometheus.yml"
     depends_on:
       - serveur1
+    networks:
+      linux-cours:
+        ipv4_address: 192.168.100.5
 
   grafana:
     image: grafana/grafana:latest
@@ -59,10 +75,13 @@ services:
     volumes:
       - ./grafana:/var/lib/grafana
     environment:
-      - GF_SECURITY_ADMIN_USER=admin  
-      - GF_SECURITY_ADMIN_PASSWORD=admin  
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
     depends_on:
       - prometheus
+    networks:
+      linux-cours:
+        ipv4_address: 192.168.100.6
 
   k6:
     image: grafana/k6:latest
@@ -73,6 +92,9 @@ services:
     volumes:
       - ./samples:/scripts
     command: ["run", "/scripts/stage.js"]
+    networks:
+      linux-cours:
+        ipv4_address: 192.168.100.7
 
   influxdb:
     image: influxdb:1.8
@@ -80,3 +102,29 @@ services:
       - "8086:8086"
     environment:
       - INFLUXDB_DB=k6
+    networks:
+      linux-cours:
+        ipv4_address: 192.168.100.8
+
+  crowdsec:
+    image: crowdsecurity/crowdsec:latest
+    container_name: crowdsec
+    depends_on:
+      - 'traefik'
+    volumes:
+      - /var/log:/var/log  # Assure-toi que les logs de Traefik sont accessibles
+      - ./crowdsec/config:/etc/crowdsec  # Dossier de configuration CrowdSec
+    environment:
+      - CROWDSEC_API_KEY=your_api_key_here  # API Key si tu utilises un API
+    networks:
+      linux-cours:
+        ipv4_address: 192.168.100.9
+
+
+networks:
+  linux-cours:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 192.168.100.0/24
+
