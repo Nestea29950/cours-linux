@@ -10,15 +10,15 @@ services:
       - "8080:8080"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
-      - /var/log/traefik:/var/log/traefik  # Montre un répertoire pour les logs
+      - /var/log/traefik:/var/log/traefik  
     command:
       - "--api.insecure=true"
       - "--providers.docker=true"
       - "--entrypoints.web.address=:80"
       - "--entrypoints.websecure.address=:443"
-      - "--log.level=DEBUG"  # Active les logs détaillés
-      - "--accesslog=true"   # Active le log d'accès HTTP
-      - "--accesslog.filepath=/var/log/traefik/access.log"  # Emplacement du fichier de log
+      - "--log.level=DEBUG" 
+      - "--accesslog=true"   
+      - "--accesslog.filepath=/var/log/traefik/access.log"  
     environment:
       - TRAEFIK_LOG_LEVEL=INFO
     networks:
@@ -112,10 +112,10 @@ services:
     depends_on:
       - 'traefik'
     volumes:
-      - /var/log:/var/log  # Assure-toi que les logs de Traefik sont accessibles
-      - ./crowdsec/config:/etc/crowdsec  # Dossier de configuration CrowdSec
+      - /var/log:/var/log  
+      - ./crowdsec/config:/etc/crowdsec 
     environment:
-      - CROWDSEC_API_KEY=your_api_key_here  # API Key si tu utilises un API
+      - CROWDSEC_API_KEY=your_api_key_here  # pas de clé api
     networks:
       linux-cours:
         ipv4_address: 192.168.100.9
